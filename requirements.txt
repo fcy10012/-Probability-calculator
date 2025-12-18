@@ -1,0 +1,15 @@
+# 多袋摸球概率计算器依赖
+# 基础Python库
+# 注意：大部分使用标准库，但推荐版本
+
+# 标准库依赖（无需安装）:
+# - math
+# - random
+# - itertools
+# - collections
+# - json
+# - typing
+# - dataclasses (Python 3.7+)
+
+# 可选科学计算库（如需要可安装）
+# numpy>=1.21.0
