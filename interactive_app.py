@@ -251,11 +251,14 @@ class InteractiveProbabilityApp:
         
         print(f"\n操作序列 ({len(self.current_operations)}个操作):")
         for i, op in enumerate(self.current_operations, 1):
-            action = {"draw": "摸", "discard": "丢", "return": "还"}[op.operation_type]
-            print(f"  {i}. {action}袋{op.bag_id} {op.draw_count}个球")
-    
-    def run_exact_calculation(self):
-        """运行精确计算"""
+            action_map = {"draw": "摸", "discard": "丢", "return": "还", "discard_bag": "丢袋", "discard_hand": "丢手"}
+            action = action_map.get(op.operation_type, op.operation_type)
+            
+            if op.operation_type == "discard_hand":
+                # 丢手操作没有袋子ID
+                print(f"  {i}. {action} {op.draw_count}个球")
+            else:
+                print(f"  {i}. {action}袋{op.bag_id} {op.draw_count}个球")
         if not self.current_config:
             print("❌ 请先创建或加载一个问题")
             return
