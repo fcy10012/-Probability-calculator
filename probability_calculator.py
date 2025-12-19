@@ -169,10 +169,14 @@ class ProbabilityCalculator:
                 bags = {bag_id: bag.copy() for bag_id, bag in state["bags"].items()}
                 hand_counter = Counter(state["hand"])
                 current_prob = state["prob"]
-                
                 if operation.operation_type == "draw":
                     # 摸球操作
-                    bag = bags[operation.bag_id]
+                    bag_id = operation.bag_id
+                    # 兼容字符串和整数类型的键
+                    bag = bags.get(bag_id) or bags.get(str(bag_id))
+                    if not bag:
+                        raise KeyError(f"袋子ID {bag_id} 不存在于配置中")
+                    
                     possible_draws = bag.draw_balls(operation.draw_count)
                     
                     for balls_drawn, draw_prob in possible_draws:
@@ -182,8 +186,10 @@ class ProbabilityCalculator:
                         new_bags = {bag_id: bag.copy() for bag_id, bag in bags.items()}
                         new_hand = Counter(hand_counter)
                         
-                        # 从袋子中移除摸到的球
-                        new_bags[operation.bag_id].remove_balls(balls_drawn)
+                        # 从袋子中移除摸到的球（兼容字符串/整数键）
+                        target_bag = new_bags.get(bag_id) or new_bags.get(str(bag_id))
+                        if target_bag:
+                            target_bag.remove_balls(balls_drawn)
                         
                         # 将球加入手中
                         for ball in balls_drawn:
@@ -195,12 +201,17 @@ class ProbabilityCalculator:
                             "hand": new_hand,
                             "bags": new_bags,
                             "prob": new_prob,
-                            "path": state["path"] + [f"draw{operation.bag_id}:{balls_drawn}"]
+                            "path": state["path"] + [f"draw{bag_id}:{balls_drawn}"]
                         })
                         
                 elif operation.operation_type == "discard":
                     # 丢球操作（从袋子中丢）
-                    bag = bags[operation.bag_id]
+                    bag_id = operation.bag_id
+                    # 兼容字符串和整数类型的键
+                    bag = bags.get(bag_id) or bags.get(str(bag_id))
+                    if not bag:
+                        raise KeyError(f"袋子ID {bag_id} 不存在于配置中")
+                    
                     possible_discards = bag.draw_balls(operation.draw_count)
                     
                     for balls_discarded, discard_prob in possible_discards:
@@ -209,8 +220,10 @@ class ProbabilityCalculator:
                             
                         new_bags = {bag_id: bag.copy() for bag_id, bag in bags.items()}
                         
-                        # 从袋子中移除丢弃的球
-                        new_bags[operation.bag_id].remove_balls(balls_discarded)
+                        # 从袋子中移除丢弃的球（兼容字符串/整数键）
+                        target_bag = new_bags.get(bag_id) or new_bags.get(str(bag_id))
+                        if target_bag:
+                            target_bag.remove_balls(balls_discarded)
                         
                         new_prob = current_prob * discard_prob
                         
@@ -218,15 +231,16 @@ class ProbabilityCalculator:
                             "hand": Counter(hand_counter),  # 手不变
                             "bags": new_bags,
                             "prob": new_prob,
-                            "path": state["path"] + [f"discard{operation.bag_id}:{balls_discarded}"]
+                            "path": state["path"] + [f"discard{bag_id}:{balls_discarded}"]
                         })
-                        
                 elif operation.operation_type == "return":
                     # 放回操作（从手中放回到袋子）
                     if not hand_counter:
                         # 手中没球，直接传递状态
                         new_states.append(state.copy())
                         continue
+                    
+                    bag_id = operation.bag_id
                     
                     # 手中球的颜色列表
                     hand_colors = list(hand_counter.elements())
@@ -241,7 +255,11 @@ class ProbabilityCalculator:
                             del new_hand[color_to_return]
                         
                         new_bags = {bag_id: bag.copy() for bag_id, bag in bags.items()}
-                        new_bags[operation.bag_id].add_ball(color_to_return)
+                        
+                        # 放回球到袋子（兼容字符串/整数键）
+                        target_bag = new_bags.get(bag_id) or new_bags.get(str(bag_id))
+                        if target_bag:
+                            target_bag.add_ball(color_to_return)
                         
                         new_prob = current_prob * return_prob
                         
@@ -249,7 +267,7 @@ class ProbabilityCalculator:
                             "hand": new_hand,
                             "bags": new_bags,
                             "prob": new_prob,
-                            "path": state["path"] + [f"return{operation.bag_id}:{color_to_return}"]
+                            "path": state["path"] + [f"return{bag_id}:{color_to_return}"]
                         })
             
             # 合并相同手状态（优化状态空间）
@@ -365,12 +383,16 @@ class ProbabilityCalculator:
             # 初始化模拟
             bags = {bag_id: BagState(color_counts) for bag_id, color_counts in bags_config.items()}
             hand_counter = Counter()
-            
             # 执行所有操作
             for operation in operations:
+                bag_id = operation.bag_id
+                
                 if operation.operation_type == "draw":
                     # 摸球
-                    bag = bags[operation.bag_id]
+                    # 兼容字符串和整数类型的键
+                    bag = bags.get(bag_id) or bags.get(str(bag_id)) if bag_id is not None else None
+                    if not bag:
+                        continue  # 如果找不到袋子，跳过这个操作
                     
                     # 从袋子中所有球中随机摸
                     all_balls = []
@@ -397,7 +419,10 @@ class ProbabilityCalculator:
                         
                 elif operation.operation_type == "discard":
                     # 丢球
-                    bag = bags[operation.bag_id]
+                    # 兼容字符串和整数类型的键
+                    bag = bags.get(bag_id) or bags.get(str(bag_id)) if bag_id is not None else None
+                    if not bag:
+                        continue  # 如果找不到袋子，跳过这个操作
                     
                     all_balls = []
                     for color, count in bag.color_counts.items():
@@ -426,7 +451,6 @@ class ProbabilityCalculator:
                     hand_balls = []
                     for color, count in hand_counter.items():
                         hand_balls.extend([color] * count)
-                    
                     if not hand_balls:
                         continue
                     
@@ -437,8 +461,11 @@ class ProbabilityCalculator:
                     if hand_counter[ball_to_return] == 0:
                         del hand_counter[ball_to_return]
                     
-                    # 放回袋子
-                    bags[operation.bag_id].add_ball(ball_to_return)
+                    # 放回袋子（兼容字符串和整数类型的键）
+                    if bag_id is not None:
+                        target_bag = bags.get(bag_id) or bags.get(str(bag_id))
+                        if target_bag:
+                            target_bag.add_ball(ball_to_return)
             
             # 记录结果
             hand_desc_parts = []
@@ -487,16 +514,23 @@ class ProbabilityCalculator:
             for color, count in color_counts.items():
                 if count < 0:
                     errors.append(f"袋子{bag_id}中颜色{color}的数量不能为负数: {count}")
-        
         # 检查操作序列
         for i, op in enumerate(operations):
-            if op.bag_id not in bags_config:
-                errors.append(f"操作{i+1}引用不存在的袋子: {op.bag_id}")
+            bag_id = op.bag_id
+            
+            # 检查袋子是否存在（兼容字符串和整数键）
+            bag_exists = (
+                bag_id in bags_config or  # 检查整数键
+                (bag_id is not None and str(bag_id) in bags_config)  # 检查字符串键
+            )
+            
+            if not bag_exists and op.operation_type != "discard_hand":
+                errors.append(f"操作{i+1}引用不存在的袋子: {bag_id}")
             
             if op.draw_count <= 0:
                 errors.append(f"操作{i+1}的摸球数量必须为正数: {op.draw_count}")
             
-            if op.operation_type not in ["draw", "discard", "return"]:
+            if op.operation_type not in ["draw", "discard", "return", "discard_hand", "discard_bag"]:
                 errors.append(f"操作{i+1}的类型无效: {op.operation_type}")
         
         return errors
