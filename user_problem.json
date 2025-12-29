@@ -1,0 +1,17 @@
+{
+  "bags_config": {
+    "A": {"R": 10, "Y": 15, "B": 20},
+    "B": {"P": 5, "Pk": 5},
+    "C": {"G": 8, "K": 8, "W": 8}
+  },
+  "operations": [
+    {"bag_id": "A", "draw_count": 3, "operation_type": "draw_with_replacement"},
+    {"bag_id": "B", "draw_count": 2, "operation_type": "draw_with_replacement"},
+    {"bag_id": "C", "draw_count": 1, "operation_type": "draw"},
+    {"bag_id": "A", "draw_count": 3, "operation_type": "discard_random"},
+    {"bag_id": "B", "draw_count": 1, "operation_type": "return_replace"},
+    {"bag_id": "A", "draw_count": 5, "operation_type": "draw_to_temp"},
+    {"bag_id": "temp", "draw_count": 2, "operation_type": "draw_with_replacement"},
+    {"bag_id": "all", "draw_count": 0, "operation_type": "reset_with_color_transform"}
+  ]
+}

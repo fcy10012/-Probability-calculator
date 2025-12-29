@@ -1,0 +1,56 @@
+{
+  "description": "多层多袋球抽取与变化的复杂概率问题 - 难度系数10",
+  "bags_config": {
+    "1": {
+      "R": 10,
+      "Y": 15,
+      "B": 20
+    },
+    "2": {
+      "P": 5,
+      "Pk": 5
+    },
+    "3": {
+      "G": 8,
+      "K": 8,
+      "W": 8
+    }
+  },
+  "operations": [
+    {
+      "bag_id": 1,
+      "draw_count": 3,
+      "operation_type": "draw"
+    },
+    {
+      "bag_id": 2,
+      "draw_count": 2,
+      "operation_type": "draw"
+    },
+    {
+      "bag_id": 3,
+      "draw_count": 1,
+      "operation_type": "draw"
+    },
+    {
+      "bag_id": 1,
+      "draw_count": 3,
+      "operation_type": "discard"
+    },
+    {
+      "bag_id": 2,
+      "draw_count": 1,
+      "operation_type": "return"
+    },
+    {
+      "bag_id": 1,
+      "draw_count": 5,
+      "operation_type": "draw"
+    },
+    {
+      "bag_id": 1,
+      "draw_count": 2,
+      "operation_type": "draw"
+    }
+  ]
+}
