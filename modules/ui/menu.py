@@ -91,7 +91,6 @@ class MenuController:
                     print(f"❌ 加载失败: {e}")
         except ImportError:
             print("❌ 显示模块未找到")
-    
     def create_custom_problem(self):
         """创建自定义问题 - 调用配置向导"""
         print("\n✏️ 创建自定义问题")
@@ -103,8 +102,21 @@ class MenuController:
             
             if config_data:
                 self.current_config = config_data["bags_config"]
-                self.current_operations = config_data["operations"]
                 self.current_description = config_data["description"]
+                
+                # 将字典列表转换为BallDrawOperation对象列表
+                from calculation.core import BallDrawOperation
+                operations_list = []
+                for op_dict in config_data["operations"]:
+                    operations_list.append(
+                        BallDrawOperation(
+                            bag_id=op_dict["bag_id"],
+                            draw_count=op_dict["draw_count"],
+                            operation_type=op_dict["operation_type"]
+                        )
+                    )
+                
+                self.current_operations = operations_list
                 print(f"\n✅ 自定义问题创建成功!")
                 self._display_current_problem_summary()
         except Exception as e:
@@ -131,17 +143,11 @@ class MenuController:
                 self.current_operations,
                 progress_callback=display_calculation_progress
             )
-            
             from ui.display import display_results
             display_results(results, is_monte_carlo=False)
             
             # 保存结果
-            self.file_manager.save_results(
-                results, 
-                self.current_description,
-                self.current_config,
-                self.current_operations
-            )
+            self.file_manager.save_results(results)
             
         except Exception as e:
             print(f"❌ 计算失败: {e}")
@@ -173,17 +179,11 @@ class MenuController:
                 num_simulations,
                 progress_callback=display_simulation_progress
             )
-            
             from ui.display import display_results
             display_results(results, is_monte_carlo=True)
             
             # 保存结果
-            self.file_manager.save_results(
-                results, 
-                self.current_description,
-                self.current_config,
-                self.current_operations
-            )
+            self.file_manager.save_results(results)
             
         except ValueError as e:
             print(f"❌ 输入错误: {e}")

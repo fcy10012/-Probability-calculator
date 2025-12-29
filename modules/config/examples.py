@@ -98,9 +98,8 @@ def load_problem_config(problem_name="original_problem"):
         )
     
     return problem["bags_config"], operations_objs, problem["description"]
-
 def create_custom_config():
-    """创建自定义配置的指南"""
+    """创建自定义配置"""
     print("=" * 60)
     print("创建自定义配置指南")
     print("=" * 60)
@@ -125,17 +124,125 @@ def create_custom_config():
     print("   - 'return': 从手中随机放回一个球到指定袋子")
     print()
     
+    # 获取问题描述
+    description = input("请输入问题描述: ").strip()
+    if not description:
+        description = "自定义问题"
+    
+    # 获取袋子配置
+    bags_config = {}
+    print("\n开始配置袋子 (输入'q'完成配置):")
+    while True:
+        try:
+            bag_input = input(f"袋子 {len(bags_config) + 1} (格式: 袋号:颜色:数量,颜色:数量 如 1:R:3,B:2): ").strip()
+            
+            if bag_input.lower() == 'q':
+                if not bags_config:
+                    print("至少需要一个袋子")
+                    continue
+                break
+            
+            # 解析输入：格式为 "袋号:颜色:数量,颜色:数量"
+            parts = bag_input.split(':')
+            if len(parts) < 2:
+                print("格式错误，请按格式输入")
+                continue
+            
+            # 第一部分是袋号
+            bag_id = int(parts[0].strip())
+            
+            # 剩余部分是颜色配置
+            colors_config = {}
+            color_parts_str = ':'.join(parts[1:])  # 重新组合颜色部分
+            
+            # 解析颜色配置（用逗号分隔）
+            for color_part in color_parts_str.split(','):
+                color_part = color_part.strip()
+                if not color_part:
+                    continue
+                    
+                if ':' not in color_part:
+                    print(f"颜色配置格式错误: {color_part} (应为 颜色:数量)")
+                    continue
+                    
+                color_count_parts = color_part.split(':')
+                if len(color_count_parts) != 2:
+                    print(f"颜色配置格式错误: {color_part}")
+                    continue
+                    
+                color = color_count_parts[0].strip()
+                try:
+                    count = int(color_count_parts[1].strip())
+                    colors_config[color] = count
+                except ValueError:
+                    print(f"数量必须是整数: {color_count_parts[1]}")
+                    continue
+            
+            if not colors_config:
+                print("至少需要一个颜色")
+                continue
+            
+            bags_config[bag_id] = colors_config
+            print(f"✅ 袋子{bag_id}配置完成: {colors_config}")
+            
+        except ValueError as e:
+            print(f"输入错误: {e}")
+    
+    # 获取操作序列
+    operations = []
+    print("\n开始配置操作序列 (输入'q'完成配置):")
+    
+    while True:
+        try:
+            if operations:
+                print(f"已配置 {len(operations)} 个操作")
+            
+            op_input = input(f"操作 {len(operations) + 1} (格式: 袋号,数量,类型 如 1,2,draw): ").strip()
+            
+            if op_input.lower() == 'q':
+                if not operations:
+                    print("至少需要一个操作")
+                    continue
+                break
+            
+            parts = op_input.split(',')
+            if len(parts) != 3:
+                print("格式错误，需要3个参数: 袋号,数量,类型")
+                continue
+            
+            bag_id = int(parts[0].strip())
+            draw_count = int(parts[1].strip())
+            operation_type = parts[2].strip().lower()
+            
+            if operation_type not in ['draw', 'discard', 'return']:
+                print("操作类型必须是: draw, discard 或 return")
+                continue
+            
+            if bag_id not in bags_config:
+                print(f"错误: 袋子{bag_id}未定义")
+                continue
+            
+            operations.append({
+                "bag_id": bag_id,
+                "draw_count": draw_count,
+                "operation_type": operation_type
+            })
+            
+            action = {"draw": "摸", "discard": "丢", "return": "还"}[operation_type]
+            print(f"✅ 操作配置完成: {action}袋{bag_id} {draw_count}个球")
+            
+        except ValueError as e:
+            print(f"输入错误: {e}")
+    
+    print(f"\n✅ 自定义配置创建完成!")
+    print(f"描述: {description}")
+    print(f"袋子数: {len(bags_config)}")
+    print(f"操作数: {len(operations)}")
+    
     return {
-        "bags_config_example": {
-            1: {"R": 3, "B": 5},
-            2: {"G": 2, "Y": 4},
-        },
-        "operations_example": [
-            {"bag_id": 1, "draw_count": 2, "operation_type": "draw"},
-            {"bag_id": 1, "draw_count": 1, "operation_type": "discard"},
-            {"bag_id": 2, "draw_count": 1, "operation_type": "draw"},
-            {"bag_id": 1, "draw_count": 1, "operation_type": "return"},
-        ]
+        "description": description,
+        "bags_config": bags_config,
+        "operations": operations
     }
 
 if __name__ == "__main__":

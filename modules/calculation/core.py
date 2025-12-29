@@ -121,9 +121,19 @@ class BagState:
             self.color_counts[color] = 0
         self.color_counts[color] += 1
         self.total_balls += 1
-    
     def __repr__(self):
         return f"BagState({self.color_counts})"
+    
+    def to_string(self) -> str:
+        """生成袋子的字符串表示，用于作为字典键"""
+        if not self.color_counts:
+            return "空袋"
+        
+        parts = []
+        for color, count in sorted(self.color_counts.items()):
+            if count > 0:
+                parts.append(f"{count}{color}")
+        return "+".join(parts) if parts else "空袋"
 
 class ProbabilityCalculator:
     """概率计算器主类"""
@@ -340,10 +350,10 @@ class ProbabilityCalculator:
         
         print(f"  剪枝后保留 {len(pruned_states)} 个状态 (原 {len(states)} 个)")
         return pruned_states
-    
     def _aggregate_results(self, states: List[Dict]) -> Dict[str, Any]:
         """汇总计算结果"""
         hand_distribution = defaultdict(float)
+        bag_distributions = {}  # 每个袋子的分布 {bag_id: {bag_state_str: probability}}
         
         for state in states:
             # 将手状态转换为字符串表示
@@ -354,14 +364,31 @@ class ProbabilityCalculator:
             
             hand_desc = "+".join(hand_desc_parts) if hand_desc_parts else "空手"
             hand_distribution[hand_desc] += state["prob"]
+            
+            # 记录每个袋子的状态
+            for bag_id, bag_state in state["bags"].items():
+                if bag_id not in bag_distributions:
+                    bag_distributions[bag_id] = defaultdict(float)
+                
+                bag_state_str = bag_state.to_string()
+                bag_distributions[bag_id][bag_state_str] += state["prob"]
         
         # 计算总概率
         total_prob = sum(hand_distribution.values())
+        
+        # 转换bag_distributions为普通字典
+        bag_distributions_dict = {}
+        for bag_id, distribution in bag_distributions.items():
+            # 只保留概率大于0的状态
+            filtered_dist = {k: v for k, v in distribution.items() if v > 0}
+            if filtered_dist:
+                bag_distributions_dict[bag_id] = dict(filtered_dist)
         
         return {
             "total_states": len(states),
             "total_probability": total_prob,
             "hand_distribution": dict(hand_distribution),
+            "bag_distributions": bag_distributions_dict,
             "calculation_method": "exact"
         }
     def monte_carlo_simulation(self, bags_config: Dict[int, Dict[str, int]], 
@@ -486,7 +513,6 @@ class ProbabilityCalculator:
                         target_bag = bags.get(bag_id) or bags.get(str(bag_id))
                         if target_bag:
                             target_bag.add_ball(ball_to_return)
-            
             # 记录结果
             hand_desc_parts = []
             for color, count in sorted(hand_counter.items()):
@@ -494,24 +520,65 @@ class ProbabilityCalculator:
                     hand_desc_parts.append(f"{count}{color}")
             
             hand_desc = "+".join(hand_desc_parts) if hand_desc_parts else "空手"
-            results[hand_desc] += 1
+            
+            # 记录手状态
+            if hand_desc not in results:
+                results[hand_desc] = {"count": 0, "bag_states": {}}
+            results[hand_desc]["count"] += 1
+            
+            # 记录袋子状态（为每种手状态记录袋子状态分布）
+            bag_state_key = tuple()
+            for bag_id, bag in sorted(bags.items()):
+                bag_state_str = bag.to_string()
+                bag_state_key += (f"{bag_id}:{bag_state_str}",)
+            
+            # 如果这是新的手-袋子组合，初始化袋子状态计数
+            if bag_state_key not in results[hand_desc]["bag_states"]:
+                results[hand_desc]["bag_states"][bag_state_key] = 0
+            results[hand_desc]["bag_states"][bag_state_key] += 1
         
         if progress_callback:
             progress_callback(num_simulations, num_simulations)
         else:
             print(f"\n模拟完成，生成 {len(results)} 种不同结果")
         
-        # 转换为概率
-        total_simulations = sum(results.values())
+        # 转换为概率并计算袋子分布
+        total_simulations = sum(data["count"] for data in results.values())
         hand_distribution = {}
+        bag_distributions = {}
         
-        for hand_desc, count in results.items():
-            hand_distribution[hand_desc] = count / total_simulations
+        for hand_desc, data in results.items():
+            hand_prob = data["count"] / total_simulations
+            hand_distribution[hand_desc] = hand_prob
+            
+            # 为这个手状态计算袋子状态分布
+            for bag_state_key, count in data["bag_states"].items():
+                for bag_state_part in bag_state_key:
+                    bag_id, bag_state_str = bag_state_part.split(":", 1)
+                    bag_id = int(bag_id)
+                    
+                    if bag_id not in bag_distributions:
+                        bag_distributions[bag_id] = {}
+                    
+                    if bag_state_str not in bag_distributions[bag_id]:
+                        bag_distributions[bag_id][bag_state_str] = 0
+                    
+                    # 计算这个袋子状态的概率贡献
+                    contribution = (count / data["count"]) * hand_prob
+                    bag_distributions[bag_id][bag_state_str] += contribution
+        
+        # 清理并格式化袋子分布
+        bag_distributions_dict = {}
+        for bag_id, distribution in bag_distributions.items():
+            filtered_dist = {k: v for k, v in distribution.items() if v > 0}
+            if filtered_dist:
+                bag_distributions_dict[bag_id] = filtered_dist
         
         return {
             "total_states": len(hand_distribution),
             "total_probability": sum(hand_distribution.values()),
             "hand_distribution": hand_distribution,
+            "bag_distributions": bag_distributions_dict,
             "simulations": num_simulations,
             "calculation_method": "monte_carlo"
         }

@@ -56,7 +56,6 @@ def display_simulation_progress(current: int, total: int):
         
         if current == total:
             print()  # 换行
-
 def display_results(results: Dict, is_monte_carlo: bool = False):
     """显示计算结果"""
     print("\n" + "=" * 60)
@@ -111,6 +110,33 @@ def display_results(results: Dict, is_monte_carlo: bool = False):
                 print(f"\n🎯 期望球数:")
                 for color, expectation in sorted(color_expectations.items()):
                     print(f"  {color}: {expectation:.4f}个")
+    
+    # 显示袋子状态分布（新功能）
+    bag_distributions = results.get('bag_distributions', {})
+    if bag_distributions:
+        print(f"\n📦 袋子最终状态分布:")
+        print("=" * 60)
+        
+        for bag_id, bag_dist in sorted(bag_distributions.items()):
+            print(f"\n袋子{bag_id}状态分布:")
+            print("-" * 40)
+            
+            # 按概率排序
+            sorted_bag_states = sorted(bag_dist.items(), key=lambda x: x[1], reverse=True)
+            
+            # 显示前10种最可能的状态
+            for i, (bag_state_str, prob) in enumerate(sorted_bag_states[:10]):
+                percentage = prob * 100
+                print(f"  {i+1:2d}. {bag_state_str:30s}: {prob:.6f} ({percentage:.2f}%)")
+            
+            if len(sorted_bag_states) > 10:
+                print(f"  ... 和其他 {len(sorted_bag_states) - 10} 种状态")
+            
+            # 显示袋子状态的统计信息
+            if sorted_bag_states:
+                total_bag_prob = sum(prob for _, prob in sorted_bag_states)
+                print(f"  袋子{bag_id}总概率: {total_bag_prob:.8f}")
+                print(f"  不同状态数: {len(sorted_bag_states)}")
 
 def _calculate_color_expectations(distribution: Dict[str, float]) -> Dict[str, float]:
     """计算各颜色球的期望数量"""
