@@ -10,17 +10,24 @@ from dataclasses import dataclass
 from collections import defaultdict, Counter
 
 # numpy是可选的，只用于某些高级功能
-try:
-    import numpy as np
-    NUMPY_AVAILABLE = True
-except ImportError:
-    NUMPY_AVAILABLE = False
-    # 创建一个简单的替代
+if numpy = input("你是否安装了numpy（安装了输入y，没安装输入n）"） == y
+    try:
+        import numpy as np
+        NUMPY_AVAILABLE = True
+    except ImportError:
+        NUMPY_AVAILABLE = False
+        # 创建一个简单的替代
     class np:
         @staticmethod
-        def random():
+         def random():
+        return random
+    elif numpy == n
+        NUMPY_AVAILABLE = False
+        # 创建一个简单的替代
+        class np:
+             @staticmethod
+             def random():
             return random
-
 @dataclass
 class BallDrawOperation:
     """摸球操作定义"""
